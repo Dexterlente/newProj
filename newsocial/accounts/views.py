@@ -19,11 +19,14 @@ from dj_rest_auth.registration.serializers import VerifyEmailSerializer
 from dj_rest_auth.serializers import JWTSerializer
 from dj_rest_auth.utils import jwt_encode
 from django.views.decorators.debug import sensitive_post_parameters
-from django.utils.decorators import method_decorator
 from django.contrib.auth.models import User, Permission
 from django.utils.translation import gettext_lazy as _
 from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView, GenericAPIView, RetrieveUpdateAPIView, UpdateAPIView
 from django.shortcuts import get_object_or_404
+from django.contrib.auth import logout
+from django.http import JsonResponse
+from django.views.decorators.csrf import ensure_csrf_cookie
+from rest_framework import status
 
 from .models import User, Profile, Address, SMSVerification, DeactivateUser, NationalIDImage
 # from .serializers import (
@@ -90,6 +93,19 @@ class LoginAPIView(LoginView):
         self.serializer.is_valid(raise_exception=True)
         self.login()
         return self.get_response()
+
+
+@method_decorator(ensure_csrf_cookie, name='dispatch')
+class CustomLogoutView(APIView):
+    def post(self, request, *args, **kwargs):
+        # Log the user out
+        logout(request)
+
+        # Clear the CSRF token in cookies
+        response = JsonResponse({'detail': 'Successfully logged out.'})
+        response.delete_cookie('csrftoken')
+
+        return response
 
 
 @method_decorator(csrf_exempt, name='dispatch')
